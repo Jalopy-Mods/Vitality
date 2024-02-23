@@ -22,6 +22,20 @@ It also supports the JaLoader Enhanced Movement setting - it adds an optional st
 Additionally, Vitality adds a way for custom objects to specify if your object is consumable, and what vitals it affects. 
 
 It's as simple as adding a `VitalityStats` component to your GameObject before registering it.
+### This has to be done via reflection, to make sure no errors occour if the user doesn't have Vitality installed.
+```csharp
+            // Here's an example - if you find a better way to do this, please let me know through Discord (username is leaxx)
+            var type = ModLoader.Instance.GetTypeFromMod("Leaxx", "Vitality", "Vitality", "VitalityStats");
+
+            if(type != null)
+            {
+                var comp = objectExample.AddComponent(type);
+                comp.GetType().GetField("AffectsFatigueBy").SetValue(comp, 100);
+                comp.GetType().GetField("AffectsHungerBy").SetValue(comp, 75);
+                comp.GetType().GetField("AffectsThirstBy").SetValue(comp, 50);
+                comp.GetType().GetField("AffectsBathroomBy").SetValue(comp, 25);
+            }
+```
 
 To configure the values, modify the `AffectsFatigueBy`, `AffectsHungerBy`, `AffectsThirstBy` or `AffectsBathroomBy` values, with the coresponding values.
 
