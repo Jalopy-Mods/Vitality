@@ -2,7 +2,7 @@
 
 [![](https://img.shields.io/github/downloads/Jalopy-Mods/Vitality/total)](#)
 
-This mod introduces 4 new worries in your gameplay: fatigue, hunger, thirst and "bathroom needs". These have minor effects on the gameplay, only affecting sleeping at motels and your vision. They can all be managed by consuming items, sleeping, or using the bathroom in motels.
+This mod introduces 5 new worries in your gameplay: fatigue, hunger, thirst, "bathroom needs" and stress. These have minor effects on the gameplay, only affecting sleeping at motels and your vision. They can all be managed by consuming items, sleeping, or using the bathroom in motels.
 
 Vitality supports the **Mobility** mod made by **Max**. It can be downloaded on the [official MinskWorks Discord server](https://discord.gg/TqCwKdR). It affects the rate at which stamina is regenerated and consumed, if enabled.
 
@@ -31,12 +31,13 @@ It's as simple as adding a `VitalityStats` component to your GameObject before r
             {
                 var comp = objectExample.AddComponent(type);
                 comp.GetType().GetField("AffectsFatigueBy").SetValue(comp, 100);
-                comp.GetType().GetField("AffectsHungerBy").SetValue(comp, 75);
-                comp.GetType().GetField("AffectsThirstBy").SetValue(comp, 50);
+                comp.GetType().GetField("AffectsHungerBy").SetValue(comp, -75);
+                comp.GetType().GetField("AffectsThirstBy").SetValue(comp, -50);
                 comp.GetType().GetField("AffectsBathroomBy").SetValue(comp, 25);
+                comp.GetType().GetField("AffectsStressBy").SetValue(comp, -5);
             }
 ```
 
-To configure the values, modify the `AffectsFatigueBy`, `AffectsHungerBy`, `AffectsThirstBy` or `AffectsBathroomBy` values, with the coresponding values.
+To configure the values, modify the `AffectsFatigueBy`, `AffectsHungerBy`, `AffectsThirstBy`, `AffectsBathroomBy` or `AffectsStressBy` values, with the coresponding values.
 
 For example, to have an object reduce hunger by 20 and increase thirst by 10 when consumed, `AffectsHungerBy` would be set to `-20` and `AffectsThirstBy` to `10`.
