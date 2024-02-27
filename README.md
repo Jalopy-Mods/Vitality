@@ -8,6 +8,10 @@ Vitality supports the **Mobility** mod made by **Max**. It can be downloaded on 
 
 It also supports the JaLoader Enhanced Movement setting - it adds an optional stamina bar that affects jumping and sprinting.
 
+* Having high fatigue will make your character doze out randomly, and you won't be able to see anything.
+* Being drunk from drinking wine will make you character's vision wavy, and he'll also randomly doze out for short periods of time.
+* Fatigue is influenced by your hunger and thirst, higher values mean faster fatigue accumulation.
+* Stamina is influenced by fatigue, hunger and thirst.
 
 ### How to install
 1. Make sure you have [JaLoader](https://github.com/theLeaxx/JaLoader) 3.1.0+ installed
