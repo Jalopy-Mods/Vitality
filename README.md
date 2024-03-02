@@ -39,9 +39,10 @@ It's as simple as adding a `VitalityStats` component to your GameObject before r
                 comp.GetType().GetField("AffectsThirstBy").SetValue(comp, -50);
                 comp.GetType().GetField("AffectsBathroomBy").SetValue(comp, 25);
                 comp.GetType().GetField("AffectsStressBy").SetValue(comp, -5);
+                comp.GetType().GetField("AffectsDrunknessBy").SetValue(comp, 20);
             }
 ```
 
-To configure the values, modify the `AffectsFatigueBy`, `AffectsHungerBy`, `AffectsThirstBy`, `AffectsBathroomBy` or `AffectsStressBy` values, with the coresponding values.
+To configure the values, modify the `AffectsFatigueBy`, `AffectsHungerBy`, `AffectsThirstBy`, `AffectsBathroomBy`, `AffectsStressBy` or `AffectsDrunknessBy` values, with the coresponding values.
 
 For example, to have an object reduce hunger by 20 and increase thirst by 10 when consumed, `AffectsHungerBy` would be set to `-20` and `AffectsThirstBy` to `10`.
