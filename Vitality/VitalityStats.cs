@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace Vitality
 {
@@ -12,5 +8,7 @@ namespace Vitality
         public float AffectsHungerBy = 0f;
         public float AffectsThirstBy = 0f;
         public float AffectsBathroomBy = 0f;
+        public float AffectsStressBy = 0f;
+        public float AffectsDrunknessBy = 0f;
     }
 }
