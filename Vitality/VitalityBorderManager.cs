@@ -33,17 +33,6 @@ namespace Vitality
             ignitionLogic = carLogic.ignition.GetComponent<IgnitionLogicC>();
             doorLogic = carLogic.leftDoor.GetComponent<DoorLogicC>();
         }
-
-        private void Update()
-        {
-            if (ignitionLogic.preventIgnition && doorLogic.isLocked)
-            {
-                //BorderLogicC borderLogic = FindObjectOfType<BorderLogicC>();
-
-
-            }
-        }
-
     }
 
     [HarmonyPatch(typeof(BorderLogicC), "FinePaid")]
