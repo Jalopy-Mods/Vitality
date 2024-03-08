@@ -21,7 +21,7 @@ namespace Vitality
         public override string ModName => "Vitality";
         public override string ModAuthor => "Leaxx";
         public override string ModDescription => "Adds fatigue, hunger, thirst, bathroom needs, and stress to Jalopy!";
-        public override string ModVersion => "1.0.1";
+        public override string ModVersion => "1.0.2";
         public override string GitHubLink => "https://github.com/Jalopy-Mods/Vitality";
         public override WhenToInit WhenToInit => WhenToInit.InGame;
         public override List<(string, string, string)> Dependencies => new List<(string, string, string)>()
@@ -92,6 +92,7 @@ namespace Vitality
             EventsManager.Instance.OnPause += OnPause;
             EventsManager.Instance.OnUnpause += OnUnpause;
             EventsManager.Instance.OnSleep += OnSleep;
+            EventsManager.Instance.OnNewGame += ResetValues;
         }
 
         public void OnModsLoaded()
@@ -129,10 +130,14 @@ namespace Vitality
         public void OnSleep()
         {
             fatigue = 0;
-            hunger += 20;
-            thirst += 30;
-            bathroom += 30;
-            stress -= 40;
+            if(GetToggleValue("EnableHunger") == true)
+                hunger += 20;
+            if(GetToggleValue("EnableThirst") == true)
+                thirst += 30;
+            if(GetToggleValue("EnableBathroom") == true)
+                bathroom += 30;
+            if(GetToggleValue("EnableStress") == true)
+                stress -= 40;
 
             SaveValues();
         }
@@ -352,6 +357,8 @@ namespace Vitality
                 else
                     fatigue = 100;
             }
+            else
+                fatigue = 0;
 
             if (GetToggleValue("EnableHunger") == true)
             {
@@ -360,6 +367,8 @@ namespace Vitality
                 else
                     hunger = 100;
             }
+            else
+                hunger = 0;
 
             if (GetToggleValue("EnableThirst") == true)
             {
@@ -368,6 +377,8 @@ namespace Vitality
                 else
                     thirst = 100;
             }
+            else
+                thirst = 0;
 
             if (GetToggleValue("EnableBathroom") == true)
             {
@@ -376,6 +387,8 @@ namespace Vitality
                 else
                     bathroom = 100;
             }
+            else
+                bathroom = 0;
 
             if (GetToggleValue("EnableStress") == true)
             {
@@ -383,7 +396,9 @@ namespace Vitality
                     stress += Time.deltaTime / 15;
                 else
                     stress = 100;
-            }  
+            }
+            else
+                stress = 0;
             #endregion
 
             #region Affect player and show UI
@@ -393,7 +408,7 @@ namespace Vitality
 
             if (Time.time >= nextCheckTime)
             {
-                if (fatigue >= 60f)
+                if (fatigue >= 60f && GetToggleValue("EnableFatigue") == true)
                 {
                     float dozeTime = CalculateDozeTime(fatigue);
                     VitalityVisionManager.Instance.DozeFor(dozeTime);
@@ -401,7 +416,7 @@ namespace Vitality
                     return;
                 }
 
-                if (drunkness > 0)
+                if (drunkness > 0 && GetToggleValue("EnableDrunkness") == true)
                 {
                     float dozeTime = CalculateDozeTimeAlcohol(drunkness);
                     VitalityVisionManager.Instance.DozeFor(dozeTime);
@@ -422,6 +437,8 @@ namespace Vitality
                     VitalityVisionManager.Instance.isShaking = false;
                 }
             }
+            else
+                drunkness = 0;
 
             if (dragRigidbodyC_ModExtension.lookingAt != null)
             {
@@ -736,6 +753,21 @@ namespace Vitality
                 stress = values["stress"];
                 drunkness = values["drunkness"];
             }
+        }
+
+        private void ResetValues()
+        {
+            var values = new ValuesSave
+            {
+                { "fatigue", 0 },
+                { "hunger", 0 },
+                { "thirst", 0 },
+                { "bathroom", 0 },
+                { "stress", 0 },
+                { "drunkness", 0 }
+            };
+
+            File.WriteAllText(Path.Combine(Application.persistentDataPath, $@"ModSaves\{ModID}\Values.json"), JsonUtility.ToJson(values, true));
         }
 
         public string GetVitalityChangesString(float fatigue, float hunger, float thirst, float bathroom, float stress, float drunkness)
