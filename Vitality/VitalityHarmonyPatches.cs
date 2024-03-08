@@ -6,6 +6,25 @@ using JaLoader;
 
 namespace Vitality
 {
+    [HarmonyPatch(typeof(EnhancedMovement), "Update")]
+    public static class EnhancedMovement_Update_Patch
+    {
+        static EnhancedMovement_Update_Patch()
+        {
+            Debug.Log("PATCHED EM");
+        }
+
+        [HarmonyPostfix]
+        public static void Postfix(EnhancedMovement __instance)
+        {
+            if (Input.GetKeyDown(KeyCode.Space) && __instance.isGrounded && __instance.canJump)
+            {
+                var component = GameObject.Find("Vitality_Leaxx_Vitality").GetComponents<MonoBehaviour>()[0];
+                component.GetType().GetMethod("Jumped", BindingFlags.Instance | BindingFlags.Public).Invoke(component, null);
+            }
+        }
+    }
+
     [HarmonyPatch("Stamina", "RegenerateStamina")]
     public static class Stamina_RegenerateStamina_Patch
     {
@@ -84,20 +103,6 @@ namespace Vitality
             Mathf.Clamp(increment, 0.1f, 0.5f);
 
             return increment;
-        }
-    }
-
-    [HarmonyPatch(typeof(EnhancedMovement), "Update")]
-    public static class EnhancedMovement_Update_Patch
-    {
-        [HarmonyPostfix]
-        public static void Postfix(EnhancedMovement __instance)
-        {
-            if (Input.GetKeyDown(KeyCode.Space) && __instance.isGrounded && __instance.canJump)
-            {
-                var component = GameObject.Find("Vitality_Leaxx_Vitality").GetComponents<MonoBehaviour>()[0];
-                component.GetType().GetMethod("Jumped", BindingFlags.Instance | BindingFlags.Public).Invoke(component, null);
-            }
         }
     }
 }

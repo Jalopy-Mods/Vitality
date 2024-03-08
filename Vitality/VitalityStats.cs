@@ -10,5 +10,7 @@ namespace Vitality
         public float AffectsBathroomBy = 0f;
         public float AffectsStressBy = 0f;
         public float AffectsDrunknessBy = 0f;
+        public bool AreAllValuesRandomWhenConsumed = false;
+        public bool ChooseOnlyOneRandomValueWhenConsumed = false;
     }
 }

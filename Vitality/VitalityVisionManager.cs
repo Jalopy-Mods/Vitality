@@ -57,6 +57,12 @@ namespace Vitality
             shakeSpeed = Map(vitality.drunkness, 0f, 100f, 0f, maxShakeSpeed);
             rotationIntensity = Map(vitality.drunkness, 0f, 100f, 0f, maxRotationIntensity);
 
+            if(shakeSpeed > maxShakeSpeed)
+                shakeSpeed = maxShakeSpeed;
+
+            if(rotationIntensity > maxRotationIntensity)
+                rotationIntensity = maxRotationIntensity;
+
             Vector3 newRotation = originalRotation;
 
             float rotateX = Mathf.PerlinNoise(Time.time * shakeSpeed, 0) * 2 - 1;

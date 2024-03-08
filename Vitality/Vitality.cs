@@ -12,6 +12,7 @@ using Random = UnityEngine.Random;
 using System.Runtime.CompilerServices;
 using static UnityEngine.EventSystems.EventTrigger;
 using System.Collections;
+using System.Diagnostics;
 
 namespace Vitality
 {
@@ -64,7 +65,8 @@ namespace Vitality
             { 159, (0, 0, -20, +15, 0)}, // water
             { 152, (-20, -5, +15, +10, -15)}, // coffee
             { 151, (+30, -70, -80, +20, -85)}, // wine
-            { 156, (-10, -5, +5, +15, -30)} // tobacco
+            { 156, (-10, -5, +5, +15, -30)}, // tobacco
+            { 154, (0, 0, 0, 0, 0) } // medicine, values are randomized when con
         };
 
         private int barWidth = 180;
@@ -112,7 +114,13 @@ namespace Vitality
                 if (GetToggleValue("EnableMobilityIntegration") == true && isMobilityPresent)
                     harmony.PatchAll();
                 else
+                {
                     harmony.PatchAll(typeof(BorderLogicC).Assembly);
+
+                    MethodInfo original = typeof(EnhancedMovement).GetMethod("Update", BindingFlags.Instance | BindingFlags.NonPublic);
+                    HarmonyMethod postFix = new HarmonyMethod(typeof(EnhancedMovement_Update_Patch).GetMethod("Postfix"));
+                    harmony.Patch(original, null, postFix);
+                }
             }
         }
 
@@ -507,12 +515,17 @@ namespace Vitality
                         {
                             var stats = transform.GetComponent<VitalityStats>();
 
-                            itemStatsLabel.text = GetVitalityChangesString(stats.AffectsFatigueBy, stats.AffectsHungerBy, stats.AffectsThirstBy, stats.AffectsBathroomBy, stats.AffectsStressBy, stats.AffectsDrunknessBy);
+                            if(stats.AreAllValuesRandomWhenConsumed || stats.ChooseOnlyOneRandomValueWhenConsumed)
+                                itemStatsLabel.text = GetVitalityChangesStringRandom();
+                            else
+                                itemStatsLabel.text = GetVitalityChangesString(stats.AffectsFatigueBy, stats.AffectsHungerBy, stats.AffectsThirstBy, stats.AffectsBathroomBy, stats.AffectsStressBy, stats.AffectsDrunknessBy);
                         }
                         else
                         {
                             if(comp.objectID == 151)
                                 itemStatsLabel.text = GetVitalityChangesString(vanillaConsumables[comp.objectID].Item1, vanillaConsumables[comp.objectID].Item2, vanillaConsumables[comp.objectID].Item3, vanillaConsumables[comp.objectID].Item4, vanillaConsumables[comp.objectID].Item5, 15);
+                            else if(comp.objectID == 154)
+                                itemStatsLabel.text = GetVitalityChangesStringRandom();
                             else
                                 itemStatsLabel.text = GetVitalityChangesString(vanillaConsumables[comp.objectID].Item1, vanillaConsumables[comp.objectID].Item2, vanillaConsumables[comp.objectID].Item3, vanillaConsumables[comp.objectID].Item4, vanillaConsumables[comp.objectID].Item5, 0);
                         }
@@ -637,53 +650,96 @@ namespace Vitality
                 }
 
                 if (vitalityStats != null)
-                {           
-                    if (GetToggleValue("EnableFatigue") == true)
+                {
+                    if (vitalityStats.AreAllValuesRandomWhenConsumed)
                     {
-                        fatigue += vitalityStats.AffectsFatigueBy;
+                        if (GetToggleValue("EnableFatigue") == true)
+                        {
+                            fatigue += Random.Range(-100, 101);
+                        }
+
+                        if (GetToggleValue("EnableHunger") == true)
+                        {
+                            hunger += Random.Range(-100, 101);
+                        }
+
+                        if (GetToggleValue("EnableThirst") == true)
+                        {
+                            thirst += Random.Range(-100, 101);
+                        }
+
+                        if (GetToggleValue("EnableBathroom") == true)
+                        {
+                            bathroom += Random.Range(-100, 101);
+                        }
+
+                        if (GetToggleValue("EnableStress") == true)
+                        {
+                            stress += Random.Range(-100, 101);
+                        }
+
+                        if (GetToggleValue("EnableDrunkness") == true)
+                        {
+                            drunkness += Random.Range(-100, 101);
+                        }
                     }
-                    if (GetToggleValue("EnableHunger") == true)
+                    else if (vitalityStats.ChooseOnlyOneRandomValueWhenConsumed)
                     {
-                        hunger += vitalityStats.AffectsHungerBy;
+                        GetOneRandomValueAndAffect();
                     }
-                    if (GetToggleValue("EnableThirst") == true)
+                    else
                     {
-                        thirst += vitalityStats.AffectsThirstBy;
+                        if (GetToggleValue("EnableHunger") == true)
+                        {
+                            hunger += vitalityStats.AffectsHungerBy;
+                        }
+                        if (GetToggleValue("EnableThirst") == true)
+                        {
+                            thirst += vitalityStats.AffectsThirstBy;
+                        }
+                        if (GetToggleValue("EnableBathroom") == true)
+                        {
+                            bathroom += vitalityStats.AffectsBathroomBy;
+                        }
+                        if (GetToggleValue("EnableStress") == true)
+                        {
+                            stress += vitalityStats.AffectsStressBy;
+                        }
+                        if (GetToggleValue("EnableDrunkness") == true)
+                        {
+                            drunkness += vitalityStats.AffectsDrunknessBy;
+                        }
                     }
-                    if (GetToggleValue("EnableBathroom") == true)
-                    {
-                        bathroom += vitalityStats.AffectsBathroomBy;
-                    }
-                    if (GetToggleValue("EnableStress") == true)
-                    {
-                        stress += vitalityStats.AffectsStressBy;
-                    }
-                    if (GetToggleValue("EnableDrunkness") == true)
-                    {
-                        drunkness += vitalityStats.AffectsDrunknessBy;
-                    }
+                   
                 }
                 else
                 {
-                    if (GetToggleValue("EnableFatigue") == true)
+                    if (objectPickupC.objectID == 154)
                     {
-                        fatigue += vanillaConsumables[objectPickupC.objectID].Item1;
+                        GetOneRandomValueAndAffect();
                     }
-                    if (GetToggleValue("EnableHunger") == true)
+                    else
                     {
-                        hunger += vanillaConsumables[objectPickupC.objectID].Item2;
-                    }
-                    if (GetToggleValue("EnableThirst") == true)
-                    {
-                        thirst += vanillaConsumables[objectPickupC.objectID].Item3;
-                    }
-                    if (GetToggleValue("EnableBathroom") == true)
-                    {
-                        bathroom += vanillaConsumables[objectPickupC.objectID].Item4;
-                    }
-                    if (GetToggleValue("EnableStress") == true)
-                    {
-                        stress += vanillaConsumables[objectPickupC.objectID].Item5;
+                        if (GetToggleValue("EnableFatigue") == true)
+                        {
+                            fatigue += vanillaConsumables[objectPickupC.objectID].Item1;
+                        }
+                        if (GetToggleValue("EnableHunger") == true)
+                        {
+                            hunger += vanillaConsumables[objectPickupC.objectID].Item2;
+                        }
+                        if (GetToggleValue("EnableThirst") == true)
+                        {
+                            thirst += vanillaConsumables[objectPickupC.objectID].Item3;
+                        }
+                        if (GetToggleValue("EnableBathroom") == true)
+                        {
+                            bathroom += vanillaConsumables[objectPickupC.objectID].Item4;
+                        }
+                        if (GetToggleValue("EnableStress") == true)
+                        {
+                            stress += vanillaConsumables[objectPickupC.objectID].Item5;
+                        }
                     }
                 }
 
@@ -715,6 +771,42 @@ namespace Vitality
                 }
             }
             #endregion       
+        }
+
+        private void GetOneRandomValueAndAffect()
+        {
+            int randomValue = Random.Range(0, 6);
+            int affectValue = Random.Range(0, 2);
+
+            if (affectValue == 0)
+                affectValue = -100;
+            else
+                affectValue = 100;
+
+            if (randomValue == 0 && GetToggleValue("EnableFatigue") == true)
+            {
+                fatigue += affectValue;
+            }
+            else if (randomValue == 1 && GetToggleValue("EnableHunger") == true)
+            {
+                hunger += affectValue;
+            }
+            else if (randomValue == 2 && GetToggleValue("EnableThirst") == true)
+            {
+                thirst += affectValue;
+            }
+            else if (randomValue == 3 && GetToggleValue("EnableBathroom") == true)
+            {
+                bathroom += affectValue;
+            }
+            else if (randomValue == 4 && GetToggleValue("EnableStress") == true)
+            {
+                stress += affectValue;
+            }
+            else if (randomValue == 5 && GetToggleValue("EnableDrunkness") == true)
+            {
+                drunkness += affectValue;
+            }
         }
 
         public override void OnDisable()
@@ -768,6 +860,61 @@ namespace Vitality
             };
 
             File.WriteAllText(Path.Combine(Application.persistentDataPath, $@"ModSaves\{ModID}\Values.json"), JsonUtility.ToJson(values, true));
+        }
+
+        public string GetVitalityChangesStringRandom()
+        {
+            string changesString = "\n\n\n\n\n";
+
+            if(GetToggleValue("EnableFatigue") == true)
+            {
+                if (changesString != "\n\n\n\n\n")
+                    changesString += " [000a50]|[-] ";
+
+                changesString += $"[367c7a]Fatigue ?[-]";
+            }
+
+            if(GetToggleValue("EnableHunger") == true)
+            {
+                if (changesString != "\n\n\n\n\n")
+                    changesString += " [000a50]|[-] ";
+
+                changesString += $"[367c7a]Hunger ?[-]";
+            }
+
+            if(GetToggleValue("EnableThirst") == true)
+            {
+                if (changesString != "\n\n\n\n\n")
+                    changesString += " [000a50]|[-] ";
+
+                changesString += $"[367c7a]Thirst ?[-]";
+            }
+
+            if(GetToggleValue("EnableBathroom") == true)
+            {
+                if (changesString != "\n\n\n\n\n")
+                    changesString += " [000a50]|[-] ";
+
+                changesString += $"[367c7a]Bathroom ?[-]";
+            }
+
+            if(GetToggleValue("EnableStress") == true)
+            {
+                if (changesString != "\n\n\n\n\n")
+                    changesString += " [000a50]|[-] ";
+
+                changesString += $"[367c7a]Stress ?[-]";
+            }
+
+            if(GetToggleValue("EnableDrunkness") == true)
+            {
+                if (changesString != "\n\n\n\n\n")
+                    changesString += " [000a50]|[-] ";
+
+                changesString += $"[367c7a]Drunkness ?[-]";
+            }
+
+            return changesString;
         }
 
         public string GetVitalityChangesString(float fatigue, float hunger, float thirst, float bathroom, float stress, float drunkness)
@@ -845,6 +992,9 @@ namespace Vitality
 
         public void Jumped()
         {
+            if (GetToggleValue("EnableEnhMovIntegration") == false)
+                return;
+
             stamina -= GetStaminaDecreaseFromJump();
             restoreStamina = false;
             StopAllCoroutines();
@@ -872,7 +1022,12 @@ namespace Vitality
         float GetStaminaIncreaseRate()
         {
             float increment = 0.1f * (1 - fatigue / 100) * (1 - hunger / 100) * (1 - thirst / 100);
-            Mathf.Clamp(increment, 0.01f, 0.1f);
+
+            if(increment <= 0.05f)
+                increment = 0.05f;
+
+            if(increment > 0.1f)
+                increment = 0.1f;
 
             return increment;
         }
@@ -880,7 +1035,12 @@ namespace Vitality
         float GetStaminaDecreaseFromJump()
         {
             float increment = 2.5f * (1 + fatigue / 100) * (1 + hunger / 100) * (1 + thirst / 100);
-            Mathf.Clamp(increment, 2.5f, 10);
+
+            if(increment < 2.5f)
+                increment = 2.5f;
+
+            if(increment > 10)
+                increment = 10;
 
             return increment;
         }
@@ -889,7 +1049,12 @@ namespace Vitality
         {
             float increment = 0.1f * (1 + fatigue / 100) * (1 + hunger / 100) * (1 + thirst / 100);
             increment -= 0.075f;
-            Mathf.Clamp(increment, 0.1f, 0.5f);
+
+            if(increment < 0.1f)
+                increment = 0.1f;
+
+            if (increment > 0.5f)
+                increment = 0.5f;
 
             return increment;
         }
