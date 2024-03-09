@@ -12,5 +12,6 @@ namespace Vitality
         public float AffectsDrunknessBy = 0f;
         public bool AreAllValuesRandomWhenConsumed = false;
         public bool ChooseOnlyOneRandomValueWhenConsumed = false;
+        public bool IsDrinkable = false;
     }
 }

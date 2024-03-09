@@ -9,11 +9,6 @@ namespace Vitality
     [HarmonyPatch(typeof(EnhancedMovement), "Update")]
     public static class EnhancedMovement_Update_Patch
     {
-        static EnhancedMovement_Update_Patch()
-        {
-            Debug.Log("PATCHED EM");
-        }
-
         [HarmonyPostfix]
         public static void Postfix(EnhancedMovement __instance)
         {

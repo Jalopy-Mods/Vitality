@@ -22,7 +22,7 @@ namespace Vitality
         public override string ModName => "Vitality";
         public override string ModAuthor => "Leaxx";
         public override string ModDescription => "Adds fatigue, hunger, thirst, bathroom needs, and stress to Jalopy!";
-        public override string ModVersion => "1.0.2";
+        public override string ModVersion => "1.0.3";
         public override string GitHubLink => "https://github.com/Jalopy-Mods/Vitality";
         public override WhenToInit WhenToInit => WhenToInit.InGame;
         public override List<(string, string, string)> Dependencies => new List<(string, string, string)>()
@@ -84,6 +84,7 @@ namespace Vitality
         private bool wasShowingVitals = false;
 
         private static Harmony harmony;
+        private bool patched = false;
 
         public override void EventsDeclaration()
         {
@@ -99,6 +100,9 @@ namespace Vitality
 
         public void OnModsLoaded()
         {
+            if (!gameObject.activeSelf)
+                return;
+
             var mod = ModLoader.Instance.FindMod("", "", "Mobility");
             if (mod != null)
             {
@@ -111,21 +115,43 @@ namespace Vitality
             if (harmony == null)
             {
                 harmony = new Harmony("Leaxx.Vitality.Mod");
-                if (GetToggleValue("EnableMobilityIntegration") == true && isMobilityPresent)
-                    harmony.PatchAll();
-                else
-                {
-                    harmony.PatchAll(typeof(BorderLogicC).Assembly);
-
-                    MethodInfo original = typeof(EnhancedMovement).GetMethod("Update", BindingFlags.Instance | BindingFlags.NonPublic);
-                    HarmonyMethod postFix = new HarmonyMethod(typeof(EnhancedMovement_Update_Patch).GetMethod("Postfix"));
-                    harmony.Patch(original, null, postFix);
-                }
+                Patch();
             }
+
+            EventsManager.Instance.OnCustomObjectsRegisterFinished -= OnModsLoaded;
+        }
+
+        private void Patch()
+        {
+            if (patched)
+                return;
+
+            patched = true;
+
+            if (GetToggleValue("EnableMobilityIntegration") == true && isMobilityPresent)
+                harmony.PatchAll();
+            else
+            {
+                harmony.PatchAll(typeof(BorderLogicC).Assembly);
+
+                MethodInfo original = typeof(EnhancedMovement).GetMethod("Update", BindingFlags.Instance | BindingFlags.NonPublic);
+                HarmonyMethod postFix = new HarmonyMethod(typeof(EnhancedMovement_Update_Patch).GetMethod("Postfix"));
+                harmony.Patch(original, null, postFix);
+            }
+        }
+
+        public override void OnDisable()
+        {
+            base.OnDisable();
+
+            harmony?.UnpatchAll();
         }
 
         public void OnPause()
         {
+            if(!gameObject.activeSelf)
+                return;
+
             if(showVitals)
                 wasShowingVitals = true;
 
@@ -137,6 +163,9 @@ namespace Vitality
 
         public void OnSleep()
         {
+            if (!gameObject.activeSelf)
+                return;
+
             fatigue = 0;
             if(GetToggleValue("EnableHunger") == true)
                 hunger += 20;
@@ -152,7 +181,10 @@ namespace Vitality
 
         public void OnUnpause()
         {
-            if(wasShowingVitals)
+            if (!gameObject.activeSelf)
+                return;
+
+            if (wasShowingVitals)
             {
                 wasShowingVitals = false;
                 showVitals = true;
@@ -195,6 +227,7 @@ namespace Vitality
         {
             base.OnEnable();
             LoadValues();
+            Patch();
         }
 
         public override void Awake()
@@ -448,9 +481,9 @@ namespace Vitality
             else
                 drunkness = 0;
 
-            if (dragRigidbodyC_ModExtension.lookingAt != null)
+            if (VitalityVisionManager.Instance.lookingAt != null)
             {
-                var transform = dragRigidbodyC_ModExtension.lookingAt;
+                var transform = VitalityVisionManager.Instance.lookingAt;
 
                 if (transform.name == "Cube_689" && transform.GetComponent<BedLogicC>())
                 {
@@ -511,9 +544,13 @@ namespace Vitality
 
                     if (transform.GetComponent<VitalityStats>() != null || vanillaConsumables.ContainsKey(comp.objectID))
                     {
+                        bool isDrinkable = false;
                         if (transform.GetComponent<VitalityStats>() != null)
                         {
                             var stats = transform.GetComponent<VitalityStats>();
+
+                            if(stats.IsDrinkable)
+                                isDrinkable = true;
 
                             if(stats.AreAllValuesRandomWhenConsumed || stats.ChooseOnlyOneRandomValueWhenConsumed)
                                 itemStatsLabel.text = GetVitalityChangesStringRandom();
@@ -539,7 +576,11 @@ namespace Vitality
                         else
                             _objectName = Language.Get(comp.componentHeader, "Inspector_UI");
 
-                        messageText.text = $"Hold object then press {GetPrimaryKeybind("ConsumeItem")} to consume {_objectName}";
+                        if (isDrinkable || comp.objectID == 151 || comp.objectID == 159)
+                            messageText.text = $"Hold object then press {GetPrimaryKeybind("ConsumeItem")} to drink {_objectName}";
+                        else
+                            messageText.text = $"Hold object then press {GetPrimaryKeybind("ConsumeItem")} to consume {_objectName}";
+
                     }
                     else
                         itemStatsLabel.text = "";
@@ -809,13 +850,11 @@ namespace Vitality
             }
         }
 
-        public override void OnDisable()
-        {
-            base.OnDisable();
-        }
-
         private void SaveValues()
         {
+            if (!gameObject.activeSelf)
+                return;
+
             var values = new ValuesSave
             {
                 { "fatigue", fatigue },
@@ -831,6 +870,9 @@ namespace Vitality
 
         private void LoadValues()
         {
+            if (!gameObject.activeSelf)
+                return;
+
             var values = new ValuesSave();
         
             if (File.Exists(Path.Combine(Application.persistentDataPath, $@"ModSaves\{ModID}\Values.json")))

@@ -26,6 +26,12 @@ namespace Vitality
 
         private float checkValue = 0;
 
+        public GameObject lookingAt;
+
+        private Camera _camera;
+        private float maxRayDistance;
+        private LayerMask myLayerMask;
+
         public void Awake()
         {
             if (Instance == null)
@@ -44,11 +50,32 @@ namespace Vitality
         {
             originalRotation = transform.localEulerAngles;
             mouseLook = GetComponent<MouseLook>();
+
+            _camera = GetComponent<Camera>();
+            DragRigidbodyC dragRigidbody = GetComponent<DragRigidbodyC>();
+            maxRayDistance = dragRigidbody.maxRayDistance;
+            myLayerMask = dragRigidbody.myLayerMask;
         }
 
         void Update()
         {
-            if(!isShaking || isPaused)
+            if (Physics.Raycast(GetComponent<Camera>().ScreenPointToRay(Input.mousePosition), out var hitInfo, maxRayDistance, myLayerMask, QueryTriggerInteraction.Collide))
+            {
+                if (hitInfo.collider.tag == "Pickup" && (bool)hitInfo.collider.GetComponent<ObjectPickupC>() && !hitInfo.collider.GetComponent<EngineComponentC>())
+                {
+                    lookingAt = hitInfo.collider.gameObject;
+                }
+                else
+                {
+                    lookingAt = null;
+                }
+            }
+            else
+            {
+                lookingAt = null;
+            }
+
+            if (!isShaking || isPaused)
                 return;
 
             if (mouseLook.noClipBreaker == checkValue)
