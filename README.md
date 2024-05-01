@@ -1,6 +1,7 @@
 # Vitality
 
 [![](https://img.shields.io/github/downloads/Jalopy-Mods/Vitality/total)](#)
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/A0A8OGPIQ)
 
 This mod introduces 5 new worries in your gameplay: fatigue, hunger, thirst, "bathroom needs" and stress. These have minor effects on the gameplay, only affecting sleeping at motels and your vision. They can all be managed by consuming items, sleeping, or using the bathroom in motels.
 
