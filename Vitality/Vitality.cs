@@ -22,7 +22,7 @@ namespace Vitality
         public override string ModName => "Vitality";
         public override string ModAuthor => "Leaxx";
         public override string ModDescription => "Adds fatigue, hunger, thirst, bathroom needs, and stress to Jalopy!";
-        public override string ModVersion => "1.0.6";
+        public override string ModVersion => "1.0.4";
         public override string GitHubLink => "https://github.com/Jalopy-Mods/Vitality";
         public override WhenToInit WhenToInit => WhenToInit.InGame;
         public override List<(string, string, string)> Dependencies => new List<(string, string, string)>()
