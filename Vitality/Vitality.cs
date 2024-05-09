@@ -22,12 +22,12 @@ namespace Vitality
         public override string ModName => "Vitality";
         public override string ModAuthor => "Leaxx";
         public override string ModDescription => "Adds fatigue, hunger, thirst, bathroom needs, and stress to Jalopy!";
-        public override string ModVersion => "1.0.3";
+        public override string ModVersion => "1.0.6";
         public override string GitHubLink => "https://github.com/Jalopy-Mods/Vitality";
         public override WhenToInit WhenToInit => WhenToInit.InGame;
         public override List<(string, string, string)> Dependencies => new List<(string, string, string)>()
         {
-            ("JaLoader", "Leaxx", "3.1.0")
+            ("JaLoader", "Leaxx", "3.2.0")
         };
 
         public override bool UseAssets => false;
@@ -100,16 +100,27 @@ namespace Vitality
 
         public void OnModsLoaded()
         {
-            if (!gameObject.activeSelf)
-                return;
+            DoChecking();
 
+            EventsManager.Instance.OnCustomObjectsRegisterFinished -= OnModsLoaded;
+        }
+
+        public override void OnReload()
+        {
+            base.OnReload();
+
+            DoChecking();
+        }
+
+        public void DoChecking()
+        {
             var mod = ModLoader.Instance.FindMod("", "", "Mobility");
-            if (mod != null)
+            if (mod != null && !ModLoader.Instance.disabledMods.Contains(mod))
             {
                 isMobilityPresent = true;
                 mobility = (BaseUnityPlugin)mod;
             }
-            if(SettingsManager.Instance.UseExperimentalCharacterController)
+            if (SettingsManager.Instance.UseExperimentalCharacterController)
                 isUsingEnhMovement = true;
 
             if (harmony == null)
@@ -117,8 +128,6 @@ namespace Vitality
                 harmony = new Harmony("Leaxx.Vitality.Mod");
                 Patch();
             }
-
-            EventsManager.Instance.OnCustomObjectsRegisterFinished -= OnModsLoaded;
         }
 
         private void Patch()
@@ -127,6 +136,10 @@ namespace Vitality
                 return;
 
             patched = true;
+
+            Debug.Log($"WHAT IS NULL?");
+            Debug.Log($"harmony: {harmony}");
+            Debug.Log($"toggle: {GetToggleValue("EnableMobilityIntegration")}");
 
             if (GetToggleValue("EnableMobilityIntegration") == true && isMobilityPresent)
                 harmony.PatchAll();
@@ -140,19 +153,26 @@ namespace Vitality
             }
         }
 
+        public override void OnDestroy()
+        {
+            base.OnDestroy();
+
+            harmony?.UnpatchSelf();
+        }
+
         public override void OnDisable()
         {
             base.OnDisable();
 
-            harmony?.UnpatchAll();
+            harmony?.UnpatchSelf();
         }
 
         public void OnPause()
         {
-            if(!gameObject.activeSelf)
+            if (VitalityVisionManager.Instance == null)
                 return;
 
-            if(showVitals)
+            if (showVitals)
                 wasShowingVitals = true;
 
             showVitals = false;
@@ -163,7 +183,7 @@ namespace Vitality
 
         public void OnSleep()
         {
-            if (!gameObject.activeSelf)
+            if (VitalityVisionManager.Instance == null)
                 return;
 
             fatigue = 0;
@@ -181,7 +201,7 @@ namespace Vitality
 
         public void OnUnpause()
         {
-            if (!gameObject.activeSelf)
+            if (VitalityVisionManager.Instance == null)
                 return;
 
             if (wasShowingVitals)
@@ -227,7 +247,7 @@ namespace Vitality
         {
             base.OnEnable();
             LoadValues();
-            Patch();
+            DoChecking();
         }
 
         public override void Awake()
@@ -852,7 +872,7 @@ namespace Vitality
 
         private void SaveValues()
         {
-            if (!gameObject.activeSelf)
+            if (VitalityVisionManager.Instance == null)
                 return;
 
             var values = new ValuesSave

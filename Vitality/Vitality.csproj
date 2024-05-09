@@ -25,7 +25,7 @@
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
-    <OutputPath>..\..\..\..\OneDrive\Documents\Jalopy\Mods\</OutputPath>
+    <OutputPath>..\..\..\..\Documents\Jalopy\Mods\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -63,8 +63,8 @@
       <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Jalopy\Jalopy_Data\Managed\JaLoader.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="Theraot.Core">
-      <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Jalopy\Jalopy_Data\Managed\Theraot.Core.dll</HintPath>
+    <Reference Include="MonoMod.Backports">
+      <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Jalopy\Jalopy_Data\Managed\MonoMod.Backports.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="UnityEngine">
