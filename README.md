@@ -15,7 +15,7 @@ It also supports the JaLoader Enhanced Movement setting - it adds an optional st
 * Stamina is influenced by fatigue, hunger and thirst.
 
 ### How to install
-1. Make sure you have [JaLoader](https://github.com/theLeaxx/JaLoader) 3.1.0+ installed
+1. Make sure you have [JaLoader](https://github.com/theLeaxx/JaLoader) 3.2.0+ installed
 ### Manual method: Place it in your mods folder (default is `Documents/Jalopy/Mods`)
 ### Automatic method: 
 * **This requires that the `Enable JaDownloader` setting in `Modloader Options/Preferences` in-game is set to `Yes`**
