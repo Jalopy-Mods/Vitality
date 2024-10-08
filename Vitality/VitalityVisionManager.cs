@@ -27,6 +27,8 @@ namespace Vitality
         private float checkValue = 0;
 
         public GameObject lookingAt;
+        public bool lookingAtToilet;
+        public bool lookingAtCigLighter;
 
         private Camera _camera;
         private float maxRayDistance;
@@ -64,15 +66,30 @@ namespace Vitality
                 if (hitInfo.collider.tag == "Pickup" && (bool)hitInfo.collider.GetComponent<ObjectPickupC>() && !hitInfo.collider.GetComponent<EngineComponentC>())
                 {
                     lookingAt = hitInfo.collider.gameObject;
+                    lookingAtToilet = lookingAtCigLighter = false;
+                }
+                else if (hitInfo.collider.name == "toiletSeat")
+                {
+                    lookingAtToilet = true;
+                    lookingAtCigLighter = false;
+                    lookingAt = null;
+                }
+                else if (hitInfo.collider.name == "CigLighter")
+                {
+                    lookingAtCigLighter = true;
+                    lookingAtToilet = false;
+                    lookingAt = null;
                 }
                 else
                 {
                     lookingAt = null;
+                    lookingAtToilet = lookingAtCigLighter = false;
                 }
             }
             else
             {
                 lookingAt = null;
+                lookingAtToilet = lookingAtCigLighter = false;
             }
 
             if (!isShaking || isPaused)

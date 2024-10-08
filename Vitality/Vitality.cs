@@ -22,7 +22,7 @@ namespace Vitality
         public override string ModName => "Vitality";
         public override string ModAuthor => "Leaxx";
         public override string ModDescription => "Adds fatigue, hunger, thirst, bathroom needs, and stress to Jalopy!";
-        public override string ModVersion => "1.0.5";
+        public override string ModVersion => "1.1.0";
         public override string GitHubLink => "https://github.com/Jalopy-Mods/Vitality";
         public override WhenToInit WhenToInit => WhenToInit.InGame;
         public override List<(string, string, string)> Dependencies => new List<(string, string, string)>()
@@ -33,14 +33,20 @@ namespace Vitality
         public override bool UseAssets => false;
 
         private bool isMobilityPresent = false;
+        private bool hasCigLighterTexFix = false;
         private bool isUsingEnhMovement = false;
         private BaseUnityPlugin mobility;
+        private Mod laikaAddons;
 
         private float fatigue = 0f;
         private float hunger = 0f;
         private float thirst = 0f;
         private float bathroom = 0f;
         private float stress = 0f;
+
+        private int cigaretteCount = 0;
+        private bool canSmoke = true;
+        private bool hasCigarette = false;
 
         private float stamina = 100f;
         private bool staminaBeingChanged = false;
@@ -84,7 +90,11 @@ namespace Vitality
         private bool wasShowingVitals = false;
 
         private static Harmony harmony;
+        private CarLogicC carLogic;
         private bool patched = false;
+
+        private Color normalColor = new Color(0.71f, 0.53f, 0.57f, 1f);
+        private Color desaturatedRed = new Color32(249, 77, 68, 255);
 
         public override void EventsDeclaration()
         {
@@ -123,6 +133,16 @@ namespace Vitality
                 isMobilityPresent = true;
                 mobility = (BaseUnityPlugin)mod;
             }
+
+            var mod2 = ModLoader.Instance.FindMod("Leaxx", "LaikaAddons", "Laika Addons");
+            if (mod2 != null && !ModLoader.Instance.disabledMods.Contains(mod2))
+            {
+                laikaAddons = (Mod)mod2;
+
+                if(laikaAddons.GetToggleValue("CigLighterFix") == true)
+                    hasCigLighterTexFix = true;
+            }
+
             if (SettingsManager.Instance.UseExperimentalCharacterController)
                 isUsingEnhMovement = true;
 
@@ -235,6 +255,24 @@ namespace Vitality
             AddKeybind("ConsumeItem", "Consume currently held item:", KeyCode.E);
             AddKeybind("Interact", "Interact with certain objects:", KeyCode.F);
             AddKeybind("ToggleVitals", "Toggle Vitals UI:", KeyCode.V);
+            AddKeybind("SmokeCigarette", "Smoke a cigarette:", KeyCode.I);
+            AddKeybind("CheckCigCount", "Check Cigarette count:", KeyCode.LeftShift, KeyCode.I);
+
+            AddHeader("Vitality UI");
+            AddToggle("ShowPercentage", "Show percentages in bars", true);
+            AddToggle("TransitionColor", "Slowly transition the color to red as it gets more critical", true);
+
+            AddHeader("Rates");
+            AddSlider("FatigueRate", "Fatigue Rate", 10, 20, 15, false);
+            AddSlider("HungerRate", "Hunger Rate", 5, 20, 12, false);
+            AddSlider("ThirstRate", "Thirst Rate", 5, 20, 10, false);
+            AddSlider("BathroomRate", "Bathroom Rate", 5, 22, 12, false);
+            AddSlider("StressRate", "Stress Rate", 10, 25, 17, false);
+
+            AddHeader("Features");
+            AddToggle("SmokeTobacco", "Allow smoking tobacco", true);
+
+            AddHeader("hello there :)");
         }
 
         public override void CustomObjectsRegistration()
@@ -303,6 +341,12 @@ namespace Vitality
 
             if(isUsingEnhMovement)
                 enhMovement = FindObjectOfType<EnhancedMovement>();
+
+            carLogic = FindObjectOfType<CarLogicC>();
+
+            Console.Instance.AddCommand("resetallvitals", "Resets all vitals to 0", nameof(ResetAllTo0), this);
+            Console.Instance.AddCommand("maxvitals", "Sets all vitals to 100", nameof(SetAllToMax), this);
+            Console.Instance.AddCommand("alcoholist", "Sets the drunkess to maximum", nameof(SetMaxDrunkness), this);
         }
 
         private void OnGUI()
@@ -374,7 +418,15 @@ namespace Vitality
 
                 if (num > 0f)
                 {
-                    GUI.DrawTexture(rect, Texture2D.whiteTexture, ScaleMode.StretchToFill, false, 0, color: new Color(0.71f, 0.53f, 0.57f, 1f), 0, 0);
+                    if (GetToggleValue("TransitionColor") == true)
+                    {
+                        float t = Mathf.Clamp(currentValue / 100, 0f, 1f);
+                        Color interpolatedColor = Color.Lerp(normalColor, desaturatedRed, t);
+
+                        GUI.DrawTexture(rect, Texture2D.whiteTexture, ScaleMode.StretchToFill, false, 0, color: interpolatedColor, 0, 0);
+                    }
+                    else
+                        GUI.DrawTexture(rect, Texture2D.whiteTexture, ScaleMode.StretchToFill, false, 0, color: normalColor, 0, 0);
                 }
 
                 GUIStyle style = new GUIStyle(GUI.skin.label);
@@ -384,6 +436,19 @@ namespace Vitality
                 float textX = xPos + barWidth + 20;
                 float textY = rect.y - 5; 
                 GUI.Label(new Rect(textX, textY, 100f, 25), text, style);
+                if (GetToggleValue("ShowPercentage") == true)
+                {
+                    GUIStyle smallerFont = new GUIStyle(style);
+                    smallerFont.fontSize = 14;
+
+                    float x = textX - 35;
+                    if((int)currentValue > 9 && (int)currentValue < 100)
+                        x -= 5;
+                    else if((int)currentValue == 100)
+                        x -= 15;
+
+                    GUI.Label(new Rect(x, textY + 2.5f, 100f, 25), $"{(int)currentValue}%", smallerFont);
+                }
             }
         }
 
@@ -410,7 +475,7 @@ namespace Vitality
             {
                 if (fatigue < 100)
                 {
-                    fatigue += Time.deltaTime / 12;
+                    fatigue += Time.deltaTime / GetSliderValue("FatigueRate");
                     fatigue += hunger * 0.005f * Time.deltaTime / 2.5f;
                     fatigue += thirst * 0.0025f * Time.deltaTime / 2.5f;
                 }
@@ -423,7 +488,7 @@ namespace Vitality
             if (GetToggleValue("EnableHunger") == true)
             {
                 if (hunger < 100)
-                    hunger += Time.deltaTime / 7;
+                    hunger += Time.deltaTime / GetSliderValue("HungerRate");
                 else
                     hunger = 100;
             }
@@ -433,7 +498,7 @@ namespace Vitality
             if (GetToggleValue("EnableThirst") == true)
             {
                 if (thirst < 100)
-                    thirst += Time.deltaTime / 6;
+                    thirst += Time.deltaTime / GetSliderValue("ThirstRate");
                 else
                     thirst = 100;
             }
@@ -443,7 +508,7 @@ namespace Vitality
             if (GetToggleValue("EnableBathroom") == true)
             {
                 if (bathroom < 100)
-                    bathroom += Time.deltaTime / 7.5f;
+                    bathroom += Time.deltaTime / GetSliderValue("BathroomRate");
                 else
                     bathroom = 100;
             }
@@ -453,7 +518,7 @@ namespace Vitality
             if (GetToggleValue("EnableStress") == true)
             {
                 if (stress < 100)
-                    stress += Time.deltaTime / 15;
+                    stress += Time.deltaTime / GetSliderValue("StressRate");
                 else
                     stress = 100;
             }
@@ -542,21 +607,6 @@ namespace Vitality
                     else
                         blockedField.SetValue(bedLogic, false);
                 }
-                else if (transform.name == "toiletSeat")
-                {
-                    if (bathroom > 20)
-                    {
-                        messageText.text = $"Press {GetPrimaryKeybind("Interact")} to use the toilet";
-                        if (Input.GetKeyDown(GetPrimaryKeybind("Interact")))
-                        {
-                            bathroom = 0;
-                            stress -= 15f;
-                            drunkness -= 2f;
-                        }
-                    }
-                    else
-                        messageText.text = $"You don't need to use the toilet yet";
-                }
                 else if (transform.GetComponent<ObjectPickupC>())
                 {
                     var comp = transform.GetComponent<ObjectPickupC>();
@@ -597,6 +647,8 @@ namespace Vitality
 
                         if (isDrinkable || comp.objectID == 151 || comp.objectID == 159)
                             messageText.text = $"Hold object then press {GetPrimaryKeybind("ConsumeItem")} to drink {_objectName}";
+                        else if(comp.objectID == 156)
+                            messageText.text = $"Hold object then press {GetPrimaryKeybind("ConsumeItem")} to take cigarettes";
                         else
                             messageText.text = $"Hold object then press {GetPrimaryKeybind("ConsumeItem")} to consume {_objectName}";
 
@@ -615,6 +667,23 @@ namespace Vitality
                 itemStatsLabel.text = "";
                 messageText.text = "";
             }
+
+            if (VitalityVisionManager.Instance.lookingAtToilet)
+            {
+                if (bathroom > 20)
+                {
+                    messageText.text = $"Press {GetPrimaryKeybind("Interact")} to use the toilet";
+                    if (Input.GetKeyDown(GetPrimaryKeybind("Interact")))
+                    {
+                        bathroom = 0;
+                        stress -= 15f;
+                        drunkness -= 2f;
+                    }
+                }
+                else
+                    messageText.text = $"You don't need to use the toilet yet";
+            }
+
             #endregion
 
             #region Enhanced Movement Integration
@@ -657,7 +726,42 @@ namespace Vitality
 
                 if (stamina == 100)
                     staminaBeingChanged = false;
-            }    
+            }
+            #endregion
+
+            #region Smoking tobacco
+            if(GetToggleValue("SmokeTobacco") == true)
+            {
+                if (hasCigLighterTexFix && VitalityVisionManager.Instance.lookingAtCigLighter && hasCigarette)
+                {
+                    messageText.text = "Click to light the cigarette";
+
+                    if (Input.GetMouseButtonDown(0) && canSmoke && carLogic.engineOn)
+                    {
+                        Smoke();
+                        hasCigarette = false;
+                    }
+                }
+
+                if (Input.GetKey(GetPrimaryKeybind("CheckCigCount")))
+                {
+                    if (Input.GetKey(GetSecondaryKeybind("CheckCigCount")))
+                        messageText.text = $"You have {cigaretteCount} cigarettes left";
+                }
+                else if (Input.GetKey(GetPrimaryKeybind("SmokeCigarette")) && cigaretteCount > 0 && canSmoke)
+                {
+                    if (hasCigLighterTexFix)
+                    {
+                        hasCigarette = true;
+                        messageText.text = "Use the cigarette lighter to light the cigarette";
+                    }
+                    else if (!hasCigarette)
+                        Smoke();
+                    else
+                        messageText.text = "You can't smoke again yet!";
+                }
+            }
+
             #endregion
 
             #region Consume item
@@ -692,7 +796,15 @@ namespace Vitality
             else
                 objectName = Language.Get(objectPickupC.componentHeader, "Inspector_UI");
 
-            messageText.text = $"Press {GetPrimaryKeybind("ConsumeItem")} to consume {objectName}";
+            if ((vitalityStats != null && vitalityStats.IsDrinkable == true) || objectPickupC.objectID == 151 || objectPickupC.objectID == 159)
+                messageText.text = $"Press {GetPrimaryKeybind("ConsumeItem")} to drink {objectName}";
+            else if (objectPickupC.objectID == 156)
+                if(cigaretteCount > 0)
+                    messageText.text = $"You can't carry any more cigarettes!";
+                else
+                    messageText.text = $"Press {GetPrimaryKeybind("ConsumeItem")} to take cigarettes";
+            else
+                messageText.text = $"Press {GetPrimaryKeybind("ConsumeItem")} to consume {objectName}";
 
             if (Input.GetKeyDown(GetPrimaryKeybind("ConsumeItem")))
             {
@@ -774,32 +886,32 @@ namespace Vitality
                 }
                 else
                 {
-                    if (objectPickupC.objectID == 154)
+                    switch(objectPickupC.objectID)
                     {
-                        GetOneRandomValueAndAffect();
-                    }
-                    else
-                    {
-                        if (GetToggleValue("EnableFatigue") == true)
-                        {
-                            fatigue += vanillaConsumables[objectPickupC.objectID].Item1;
-                        }
-                        if (GetToggleValue("EnableHunger") == true)
-                        {
-                            hunger += vanillaConsumables[objectPickupC.objectID].Item2;
-                        }
-                        if (GetToggleValue("EnableThirst") == true)
-                        {
-                            thirst += vanillaConsumables[objectPickupC.objectID].Item3;
-                        }
-                        if (GetToggleValue("EnableBathroom") == true)
-                        {
-                            bathroom += vanillaConsumables[objectPickupC.objectID].Item4;
-                        }
-                        if (GetToggleValue("EnableStress") == true)
-                        {
-                            stress += vanillaConsumables[objectPickupC.objectID].Item5;
-                        }
+                        case 154:
+                            GetOneRandomValueAndAffect();
+                            break;
+
+                        case 156:
+                            if (GetToggleValue("SmokeTobacco") == true && cigaretteCount == 0)
+                            {
+                                cigaretteCount = 20;
+                                DestroyConsumedObject(heldObject);
+                            }
+                            break;
+
+                        default:
+                            if (GetToggleValue("EnableFatigue") == true)
+                                fatigue += vanillaConsumables[objectPickupC.objectID].Item1;
+                            if (GetToggleValue("EnableHunger") == true)
+                                hunger += vanillaConsumables[objectPickupC.objectID].Item2;
+                            if (GetToggleValue("EnableThirst") == true)
+                                thirst += vanillaConsumables[objectPickupC.objectID].Item3;
+                            if (GetToggleValue("EnableBathroom") == true)
+                                bathroom += vanillaConsumables[objectPickupC.objectID].Item4;
+                            if (GetToggleValue("EnableStress") == true)
+                                stress += vanillaConsumables[objectPickupC.objectID].Item5;
+                            break;
                     }
                 }
 
@@ -823,14 +935,54 @@ namespace Vitality
                     waterLogic.WaterUpdate();
                 }
                 else
-                {
-                    Destroy(heldObject);
-
-                    if (playerHold2.childCount != 0)
-                        dragRigidbodyC.Holding2ToHands();
-                }
+                    DestroyConsumedObject(heldObject);
             }
             #endregion       
+        }
+
+        private void Smoke()
+        {
+            canSmoke = false;
+
+            cigaretteCount--;
+            fatigue -= 3.5f;
+            hunger -= 2.5f;
+            thirst += 2.5f;
+            bathroom += 5f;
+            stress -= 15f;
+
+            ResetIfBelowZero();
+
+            StartCoroutine(ResetCanSmoke());
+        }
+
+        private IEnumerator ResetCanSmoke()
+        {
+            yield return new WaitForSeconds(20);
+            canSmoke = true;
+        }
+
+        private void DestroyConsumedObject(GameObject heldObject)
+        {
+            Destroy(heldObject);
+
+            if (playerHold2.childCount != 0)
+                dragRigidbodyC.Holding2ToHands();
+        }
+
+        public void ResetAllTo0()
+        {
+            fatigue = hunger = thirst = bathroom = stress = drunkness = 0;
+        }
+
+        public void SetAllToMax()
+        {
+            fatigue = hunger = thirst = bathroom = stress = 100;
+        }
+
+        public void SetMaxDrunkness()
+        {
+            drunkness = 100;
         }
 
         private void GetOneRandomValueAndAffect()
@@ -867,6 +1019,22 @@ namespace Vitality
             {
                 drunkness += affectValue;
             }
+        }
+
+        private void ResetIfBelowZero()
+        {
+            if (fatigue < 0)
+                fatigue = 0;
+            if (hunger < 0)
+                hunger = 0;
+            if (thirst < 0)
+                thirst = 0;
+            if (bathroom < 0)
+                bathroom = 0;
+            if (stress < 0)
+                stress = 0;
+            if (drunkness < 0)
+                drunkness = 0;
         }
 
         private void SaveValues()
