@@ -1049,7 +1049,8 @@ namespace Vitality
                 { "thirst", thirst },
                 { "bathroom", bathroom },
                 { "stress", stress },
-                { "drunkness", drunkness }
+                { "drunkness", drunkness },
+                { "cigarettes", cigaretteCount }
             };
 
             File.WriteAllText(Path.Combine(Application.persistentDataPath, $@"ModSaves\{ModID}\Values.json"), JsonUtility.ToJson(values, true));
@@ -1073,6 +1074,7 @@ namespace Vitality
                 bathroom = values["bathroom"];
                 stress = values["stress"];
                 drunkness = values["drunkness"];
+                cigaretteCount = (int)values["cigarettes"];
             }
         }
 
