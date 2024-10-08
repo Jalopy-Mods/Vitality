@@ -347,6 +347,8 @@ namespace Vitality
             Console.Instance.AddCommand("resetallvitals", "Resets all vitals to 0", nameof(ResetAllTo0), this);
             Console.Instance.AddCommand("maxvitals", "Sets all vitals to 100", nameof(SetAllToMax), this);
             Console.Instance.AddCommand("alcoholist", "Sets the drunkess to maximum", nameof(SetMaxDrunkness), this);
+
+            DoChecking();
         }
 
         private void OnGUI()
@@ -1087,7 +1089,8 @@ namespace Vitality
                 { "thirst", 0 },
                 { "bathroom", 0 },
                 { "stress", 0 },
-                { "drunkness", 0 }
+                { "drunkness", 0 },
+                { "cigarettes", 0 }
             };
 
             File.WriteAllText(Path.Combine(Application.persistentDataPath, $@"ModSaves\{ModID}\Values.json"), JsonUtility.ToJson(values, true));
