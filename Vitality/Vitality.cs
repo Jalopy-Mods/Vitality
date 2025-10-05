@@ -22,12 +22,12 @@ namespace Vitality
         public override string ModName => "Vitality";
         public override string ModAuthor => "Leaxx";
         public override string ModDescription => "Adds fatigue, hunger, thirst, bathroom needs, and stress to Jalopy!";
-        public override string ModVersion => "1.1.0";
+        public override string ModVersion => "1.1.1";
         public override string GitHubLink => "https://github.com/Jalopy-Mods/Vitality";
-        public override WhenToInit WhenToInit => WhenToInit.InGame;
+        public override JaLoader.Common.WhenToInit WhenToInitMod => JaLoader.Common.WhenToInit.InGame;
         public override List<(string, string, string)> Dependencies => new List<(string, string, string)>()
         {
-            ("JaLoader", "Leaxx", "3.2.0")
+            ("JaLoader", "Leaxx", "5.0.1")
         };
 
         public override bool UseAssets => false;
@@ -58,7 +58,6 @@ namespace Vitality
         private Transform playerHold1;
         private Transform playerHold2;
         private DragRigidbodyC dragRigidbodyC;
-        private DragRigidbodyC_ModExtension dragRigidbodyC_ModExtension;
         private EnhancedMovement enhMovement;
 
         private Text messageText;
@@ -127,15 +126,15 @@ namespace Vitality
             if (!gameObject.activeSelf)
                 return;
 
-            var mod = ModLoader.Instance.FindMod("", "", "Mobility");
-            if (mod != null && !ModLoader.Instance.disabledMods.Contains(mod))
+            var mod = ModManager.FindMod("BepInEx", "Mobility", "Mobility", true);
+            if (mod != null && ModManager.IsModEnabled("BepInEx", "Mobility", "Mobility"))
             {
                 isMobilityPresent = true;
                 mobility = (BaseUnityPlugin)mod;
             }
 
-            var mod2 = ModLoader.Instance.FindMod("Leaxx", "LaikaAddons", "Laika Addons");
-            if (mod2 != null && !ModLoader.Instance.disabledMods.Contains(mod2))
+            var mod2 = ModManager.FindMod("Leaxx", "LaikaAddons", "Laika Addons", true);
+            if (mod2 != null && ModManager.IsModEnabled("Leaxx", "LaikaAddons", "Laika Addons"))
             {
                 laikaAddons = (Mod)mod2;
 
@@ -143,7 +142,7 @@ namespace Vitality
                     hasCigLighterTexFix = true;
             }
 
-            if (SettingsManager.Instance.UseExperimentalCharacterController)
+            if ((bool)SettingsManager.GetSettingValue("UseExperimentalCharacterController") == true)
                 isUsingEnhMovement = true;
 
             if (harmony == null)
@@ -299,16 +298,15 @@ namespace Vitality
             playerHold1 = ModHelper.Instance.player.transform.Find("Main Camera").Find("CarryHolder1");
             playerHold2 = ModHelper.Instance.player.transform.Find("Main Camera").Find("CarryHolder2");
             dragRigidbodyC = DragRigidbodyC.Global;
-            dragRigidbodyC_ModExtension = dragRigidbodyC.transform.GetComponent<DragRigidbodyC_ModExtension>();
 
-            var obj = Instantiate(new GameObject("VitalityUI"), UIManager.Instance.UICanvas.transform);
+            var obj = Instantiate(new GameObject("VitalityUI"), UIManager.Instance.JLCanvas.transform);
             obj.AddComponent<RectTransform>();
             obj.AddComponent<CanvasRenderer>();
             obj.GetComponent<RectTransform>().localPosition = new Vector3(0, -30, 0);
             obj.GetComponent<RectTransform>().rect.Set(0, -20, 500, 100);
             obj.AddComponent<Outline>();
             messageText = obj.AddComponent<Text>();
-            messageText.font = UIManager.Instance.UICanvas.transform.Find("JLUpdateDialog/Title").GetComponent<Text>().font;
+            messageText.font = UIManager.DefaultJaLoaderFont;
             messageText.fontSize = 20;
             messageText.rectTransform.sizeDelta = new Vector2(500, 100);
             messageText.alignment = TextAnchor.MiddleCenter;
@@ -319,7 +317,7 @@ namespace Vitality
             itemStatsLabel.color = Color.white;
 
             GameObject imageGO = new GameObject("VitalityDozing");
-            imageGO.transform.SetParent(UIManager.Instance.UICanvas.transform, false);
+            imageGO.transform.SetParent(UIManager.Instance.JLCanvas.transform, false);
 
             var image = imageGO.AddComponent<Image>();
 
